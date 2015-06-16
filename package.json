@@ -1,0 +1,17 @@
+{
+  "name": "moz-mv-rooms",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.12.4",
+    "gcal-conf-free-api": "^1.0.0",
+    "ical": "^0.4.0",
+    "request": "^2.57.0"
+  }
+}

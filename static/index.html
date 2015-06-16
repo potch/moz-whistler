@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">
+    <title>2015 Whistler All-Hands Schedule</title>
+    <link href='http://fonts.googleapis.com/css?family=Fira+Sans:400,500' rel='stylesheet' type='text/css'>
+    <link href='fonts/stylesheet.css' rel='stylesheet'>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html, body {
+        overflow: hidden;
+        height: 100vh;
+      }
+      body {
+        color: #003628;
+        font-size: 2vw;
+        font-family: 'Fira Sans', sans-serif;
+      }
+      header {
+        text-align: center;
+        background: #007660;
+        color: #F2F7CF;
+        font-family: 'matizregular', sans-serif;
+      }
+      h1 {
+        font-weight: 300;
+        text-transform: uppercase;
+      }
+      h2 {
+        color: #003628;
+        font-weight: 600;
+        font-family: 'matizregular', sans-serif;
+        text-transform: uppercase;
+        text-align: center;
+      }
+      article {
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        padding: 0 1em;
+        overflow: hidden;
+      }
+      section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      h1, h2, h3, h4 {
+        margin: 1rem 0;
+        font-weight: 400;
+      }
+      ul {
+        flex: 1;
+        list-style-type: none;
+        padding: 0;
+        overflow: auto;
+        animation: 5s showAll alternate linear infinite;
+        margin: 0;
+      }
+      h3 {
+        font-weight: 500;
+      }
+      h4 {
+        color: #333;
+      }
+      li p {
+        font-size: .8em;
+      }
+      li {
+        margin-bottom: 1em;
+      }
+      section + section {
+        margin-left: 1em;
+      }
+      .contain {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="contain">
+      <header>
+        <h1>Whistler All-Hands Schedule</h1>
+      </header>
+      <article>
+        <section>
+          <h2>Happening Now</h2>
+          <ul class="now">
+          </ul>
+        </section>
+        <section>
+          <h2>Starting Soon</h2>
+          <ul class="soon">
+          </ul>
+        </section>
+      </article>
+    </div>
+    <script>
+      var timeoverride = location.search.substr(1);
+      if (timeoverride) {
+        var to = timeoverride.split('-').map(function (_) {
+          return parseInt(_);
+        });
+        console.log(to);
+        timeoverride = new Date(to[0],to[1],to[2],to[3]);
+        timeoverride = timeoverride.getTime();
+      }
+      console.log(timeoverride);
+
+      var xhr = new XMLHttpRequest();
+      xhr.onload = render;
+      xhr.open('get', '/update');
+      xhr.send();
+
+      function render() {
+        var events = JSON.parse(xhr.responseText);
+        var now = timeoverride || Date.now();
+        events.forEach(function (e) {
+          e.start = new Date(e.startTime);
+          e.end = new Date(e.endTime);
+        });
+        events = events.filter(function (e) {
+          if (e.name.indexOf('Homeroom') >= 0) {
+            return false;
+          }
+          return true;
+        });
+        var currently = events.filter(function (e) {
+          return e.startTime <= now && now < e.endTime;
+        });
+        var upcoming = [];
+        var range = 1;
+        do {
+          upcoming = events.filter(function (e) {
+            return e.startTime > now && e.startTime - now < range * 60 * 60 * 1000;
+          });
+          range++;
+        } while(upcoming.length < 2 && range < 10)
+        drawList(currently, document.querySelector('.now'));
+        drawList(upcoming, document.querySelector('.soon'));
+      }
+
+      function drawList(events, el) {
+        events.forEach(function (e) {
+          var time = timeString(e.start, e.end);
+
+          var item = document.createElement('li');
+          item.innerHTML = '<h3>' + e.name + '</h3>';
+          item.innerHTML += '<h4>' + time + ', ' + e.location + '</h4>';
+          el.appendChild(item);
+        });
+      }
+
+      function timeString(start, end) {
+        var startHour = start.getHours();
+        var endHour = end.getHours();
+        var startBias = 'AM';
+        var endBias = 'AM';
+        if (endHour > 11) {
+          if (endHour > 12) {
+            endHour = endHour - 12;
+          }
+          endBias = 'PM';
+        }
+        if (endHour === 0) {
+          endHour = 12;
+        }
+        if (startHour > 11) {
+          if (startHour > 12) {
+            startHour = startHour - 12;
+          }
+          startBias = 'PM';
+        }
+        if (startHour === 0) {
+          endHour = 12;
+        }
+        if (start.getMinutes() > 0) {
+          startHour += ':' + ('0' + start.getMinutes()).substr(-2);
+        }
+        if (end.getMinutes() > 0) {
+          endHour += ':' + ('0' + end.getMinutes()).substr(-2);
+        }
+        if (startBias != endBias) {
+          return startHour + startBias + '-' + endHour + endBias;
+        }
+        return startHour + '-' + endHour + endBias;
+      }
+
+    </script>
+  </body>
+</html>
