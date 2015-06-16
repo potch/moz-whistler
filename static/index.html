@@ -19,6 +19,10 @@
         font-size: 2vw;
         font-family: 'Fira Sans', sans-serif;
       }
+      h1, h2, h3, h4 {
+        margin: 1rem 0;
+        font-weight: 400;
+      }
       header {
         text-align: center;
         background: #007660;
@@ -35,6 +39,10 @@
         font-family: 'matizregular', sans-serif;
         text-transform: uppercase;
         text-align: center;
+        background: linear-gradient(white 50%, rgba(255,255,255,0));
+        z-index: 1;
+        margin-top: 0;
+        padding-top: 1rem;
       }
       article {
         flex: 1;
@@ -47,18 +55,21 @@
         flex: 1;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
       }
-      h1, h2, h3, h4 {
-        margin: 1rem 0;
-        font-weight: 400;
-      }
+
       ul {
         flex: 1;
         list-style-type: none;
         padding: 0;
         overflow: auto;
-        animation: 5s showAll alternate linear infinite;
         margin: 0;
+      }
+      ul.scroll {
+        overflow: visible;
+        animation: 60s showAll linear infinite;
+        animation-delay: 1s;
+        animation-fill-mode: both;
       }
       h3 {
         font-weight: 500;
@@ -84,6 +95,14 @@
         max-height: 100vh;
         display: flex;
         flex-direction: column;
+      }
+      @keyframes showAll {
+        from {
+          transform: translateY(100vh);
+        }
+        to {
+          transform: translateY(-100%);
+        }
       }
     </style>
   </head>
@@ -128,12 +147,6 @@
         events.forEach(function (e) {
           e.start = new Date(e.startTime);
           e.end = new Date(e.endTime);
-        });
-        events = events.filter(function (e) {
-          if (e.name.indexOf('Homeroom') >= 0) {
-            return false;
-          }
-          return true;
         });
         var currently = events.filter(function (e) {
           return e.startTime <= now && now < e.endTime;
@@ -195,6 +208,34 @@
         }
         return startHour + '-' + endHour + endBias;
       }
+
+      var scrollTo;
+      document.addEventListener('mousemove', function () {
+        stopScroll();
+        clearTimeout(scrollTo);
+        setTimeout(startScroll, 10000);
+      });
+
+      function stopScroll() {
+        document.querySelector('.now').classList.remove('scroll');
+        document.querySelector('.soon').classList.remove('scroll');
+      }
+
+      function startScroll() {
+        scroll(document.querySelector('.now'));
+        scroll(document.querySelector('.soon'));
+      }
+
+      setTimeout(startScroll, 10000);
+
+      function scroll(el) {
+        var speed = (el.scrollHeight + window.innerHeight) / 100;
+        console.log(el.scrollHeight, speed);
+        el.classList.add('scroll');
+        el.style.animationDuration = speed + 's';
+      }
+
+
 
     </script>
   </body>
