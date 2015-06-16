@@ -213,7 +213,7 @@
       document.addEventListener('mousemove', function () {
         stopScroll();
         clearTimeout(scrollTo);
-        setTimeout(startScroll, 10000);
+        scrollTo = setTimeout(startScroll, 10000);
       });
 
       function stopScroll() {
@@ -229,7 +229,7 @@
       setTimeout(startScroll, 10000);
 
       function scroll(el) {
-        var speed = (el.scrollHeight + window.innerHeight) / 100;
+        var speed = (el.scrollHeight + window.innerHeight) / 50;
         console.log(el.scrollHeight, speed);
         el.classList.add('scroll');
         el.style.animationDuration = speed + 's';
