@@ -4,14 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">
     <title>2015 Whistler All-Hands Schedule</title>
-    <link href='http://fonts.googleapis.com/css?family=Fira+Sans:400,500' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Fira+Sans:400,500' rel='stylesheet' type='text/css'>
     <link href='fonts/stylesheet.css' rel='stylesheet'>
     <style>
       * {
         box-sizing: border-box;
       }
       html, body {
-        overflow: hidden;
         height: 100vh;
       }
       body {
@@ -29,6 +28,9 @@
         color: #F2F7CF;
         font-family: 'matizregular', sans-serif;
       }
+      article {
+        padding: 0 1em;
+      }
       h1 {
         font-weight: 300;
         text-transform: uppercase;
@@ -44,19 +46,6 @@
         margin-top: 0;
         padding-top: 1rem;
       }
-      article {
-        flex: 1;
-        display: flex;
-        flex-direction: row;
-        padding: 0 1em;
-        overflow: hidden;
-      }
-      section {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
 
       ul {
         flex: 1;
@@ -65,7 +54,7 @@
         overflow: auto;
         margin: 0;
       }
-      ul.scroll {
+      .scroll ul {
         overflow: visible;
         animation: 60s showAll linear infinite;
         animation-delay: 1s;
@@ -96,6 +85,31 @@
         display: flex;
         flex-direction: column;
       }
+      header {
+        position: relative;
+      }
+      .menu-button {
+        border: 0;
+        background: transparent;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+        line-height: 1.2em;
+      }
+      .menu {
+        display: none;
+        background: #F2F7CF;
+        font-size: 1em;
+        text-align: center;
+        padding: .5em 0;
+      }
+      .menu.active {
+        display: block;
+      }
+      .menu input, .menu select {
+        font-family: inherit;
+        font-size: .7em;
+      }
       @keyframes showAll {
         from {
           transform: translateY(100vh);
@@ -104,13 +118,69 @@
           transform: translateY(-100%);
         }
       }
+      @media (min-width: 601px) {
+        body {
+          overflow: hidden;
+        }
+        article {
+          flex: 1;
+          display: flex;
+          flex-direction: row;
+          overflow: hidden;
+        }
+        section {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .menu-button {
+          position: absolute;
+          left: 1em;
+          top: 0;
+          bottom: 0;
+          margin: auto 0;
+        }
+      }
+      @media (max-width: 600px) {
+        body {
+          font-size: 4vw;
+        }
+        label {
+          display: block;
+        }
+        .menu {
+          font-size: 1.2em;
+        }
+        .menu-button {
+          padding: .5em;
+          display: block;
+          margin: 0 auto;
+        }
+        h1 {
+          margin-bottom: 0;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="contain">
       <header>
-        <h1>Whistler All-Hands Schedule</h1>
+        <h1>Whistler Schedule</h1>
+        <button class="menu-button">Menu</button>
       </header>
+      <div class="menu">
+        <label>
+          Scroll
+          <input class="check-scroll" type="checkbox" value="scroll">
+        </label>
+        <label>
+          Location <select class="location-filter"></select>
+        </label>
+        <label>
+          Category <select class="category-filter"></select>
+        </label>
+      </div>
       <article>
         <section>
           <h2>Happening Now</h2>
@@ -125,45 +195,94 @@
       </article>
     </div>
     <script>
-      var timeoverride = location.search.substr(1);
-      if (timeoverride) {
-        var to = timeoverride.split('-').map(function (_) {
-          return parseInt(_);
-        });
-        console.log(to);
-        timeoverride = new Date(to[0],to[1],to[2],to[3]);
-        timeoverride = timeoverride.getTime();
+      var settings = localStorage.getItem('settings');
+      if (settings) {
+        try {
+          settings = JSON.parse(settings);
+        } catch (e) {
+        }
       }
-      console.log(timeoverride);
 
+      if (!settings) {
+        settings = {
+          locationFilter: false,
+          categoryFilter: false,
+          scroll: false
+        };
+      }
+
+      var menuEl = document.querySelector('.menu');
+      document.querySelector('.menu-button').addEventListener('click', function (e) {
+        menuEl.classList.toggle('active');
+      });
+      menuEl.addEventListener('change', function (e) {
+        settings.scroll = !!document.querySelector('.check-scroll').checked;
+        settings.locationFilter = document.querySelector('.location-filter').value;
+        settings.categoryFilter = document.querySelector('.category-filter').value;
+        localStorage.setItem('settings', JSON.stringify(settings));
+        render();
+      });
+
+      var obj;
       var xhr = new XMLHttpRequest();
-      xhr.onload = render;
+      xhr.onload = function () {
+        obj = JSON.parse(xhr.responseText);
+        makeOptionList(document.querySelector('.location-filter'), obj.locations, settings.locationFilter);
+        makeOptionList(document.querySelector('.category-filter'), obj.categories, settings.categoryFilter);
+        render();
+      };
       xhr.open('get', '/update');
       xhr.send();
 
       function render() {
-        var events = JSON.parse(xhr.responseText);
-        var now = timeoverride || Date.now();
+        var events = obj.events;
+        var now = Date.now();
         events.forEach(function (e) {
           e.start = new Date(e.startTime);
           e.end = new Date(e.endTime);
         });
-        var currently = events.filter(function (e) {
-          return e.startTime <= now && now < e.endTime;
-        });
+        var currently = events.filter(filterEvent).filter(happeningNow);
         var upcoming = [];
         var range = 1;
         do {
-          upcoming = events.filter(function (e) {
+          upcoming = events.filter(filterEvent).filter(function (e) {
             return e.startTime > now && e.startTime - now < range * 60 * 60 * 1000;
           });
           range++;
-        } while(upcoming.length < 2 && range < 10)
+        } while(upcoming.length < 2 && range < 1000)
         drawList(currently, document.querySelector('.now'));
         drawList(upcoming, document.querySelector('.soon'));
+        if (settings.scroll) {
+          startScroll();
+        } else {
+          document.body.classList.remove('scroll');
+        }
+      }
+
+      function happeningNow(e) {
+        var now = Date.now();
+        return e.startTime <= now && now < e.endTime;
+      }
+
+      function filterEvent(e) {
+        var matches = true;
+        if (settings.locationFilter && e.location !== settings.locationFilter) {
+          matches = false;
+        }
+        if (settings.categoryFilter) {
+          var found = false;
+          for (var i = 0; i < e.categories.length; i++) {
+            if (e.categories[i] === settings.categoryFilter) {
+              found = true;
+            }
+          }
+          matches = matches && found;
+        }
+        return matches;
       }
 
       function drawList(events, el) {
+        el.innerHTML = '';
         events.forEach(function (e) {
           var time = timeString(e.start, e.end);
 
@@ -209,30 +328,28 @@
         return startHour + '-' + endHour + endBias;
       }
 
-      var scrollTo;
-      document.addEventListener('mousemove', function () {
-        stopScroll();
-        clearTimeout(scrollTo);
-        scrollTo = setTimeout(startScroll, 10000);
-      });
-
-      function stopScroll() {
-        document.querySelector('.now').classList.remove('scroll');
-        document.querySelector('.soon').classList.remove('scroll');
-      }
-
       function startScroll() {
         scroll(document.querySelector('.now'));
         scroll(document.querySelector('.soon'));
       }
 
-      setTimeout(startScroll, 10000);
-
       function scroll(el) {
         var speed = (el.scrollHeight + window.innerHeight) / 50;
-        console.log(el.scrollHeight, speed);
-        el.classList.add('scroll');
         el.style.animationDuration = speed + 's';
+        document.body.classList.add('scroll');
+      }
+
+      function makeOptionList(select, arr, val) {
+        select.innerHTML = '<option value="">All</option>';
+        return arr.forEach(function (o, i) {
+          var option = document.createElement('option');
+          option.innerHTML = o;
+          if (val === o) {
+            option.setAttribute('selected', '');
+          }
+          option.setAttribute('value', o);
+          select.appendChild(option);
+        });
       }
 
 

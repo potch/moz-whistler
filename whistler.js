@@ -6,6 +6,8 @@ var express = require('express');
 var url = 'http://juneworkweekwhistler2015.sched.org/all.ics';
 
 var events = [];
+var categories = [];
+var locations = [];
 
 function update() {
   console.log('updating schedule...');
@@ -27,13 +29,32 @@ function update() {
           startTime: Date.parse(event.start),
           endTime: Date.parse(event.end),
           description: event.description,
-          categories: event.categories
+          categories: event.categories.map(sanitizeCategory)
         });
       }
+
+      newCategories = {};
+      newLocations = {};
+
+      newEvents.forEach(function (e) {
+        newLocations[e.location] = true;
+        e.categories.forEach(function (c) {
+          newCategories[c] = true;
+        });
+      });
+
       events = newEvents;
+      categories = Object.keys(newCategories).sort();
+      locations = Object.keys(newLocations).sort();
+
       console.log('found ' + events.length + ' events');
+
     }
   );
+}
+
+function sanitizeCategory(c) {
+  return c.replace(/\\$/, '');
 }
 
 setInterval(update, 60 * 1000);
@@ -50,10 +71,13 @@ app.get('/', function(req, res) {
 });
 
 app.get('/update', function(req, res) {
-  res.json(events);
+  res.json({
+    events: events,
+    categories: categories,
+    locations: locations,
+  });
 });
 
 server.listen(app.get('port'), function() {
   console.log("Node app is running at localhost:" + app.get('port'));
 });
-
