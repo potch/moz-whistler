@@ -72,9 +72,6 @@ li p {
 li {
   margin-bottom: 1em;
 }
-section + section {
-  margin-left: 1em;
-}
 header {
   position: relative;
 }
@@ -183,17 +180,28 @@ header {
     bottom: 0;
     margin: auto 0;
   }
+  section + section {
+    margin-left: 1em;
+  }
 }
 
 @media (max-width: 600px) {
   body {
-    font-size: 4vw;
+    font-size: 5vw;
+  }
+  h1 {
+    font-size: 1.6em;
   }
   label {
     display: block;
   }
-  .menu-button, .menu {
-    font-size: 1.5em;
+  .menu {
+    text-align: left;
+    padding: .5em;
+  }
+  select {
+    display: block;
+    width: 100%;
   }
   .menu-button {
     padding: .5em;
