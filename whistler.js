@@ -3,7 +3,7 @@ var ical = require('ical');
 var http = require('http');
 var express = require('express');
 
-var url = 'http://juneworkweekwhistler2015.sched.org/all.ics';
+var url = 'http://mozlando2015.sched.org/all.ics';
 
 var events = [];
 var categories = [];
@@ -12,7 +12,7 @@ var locations = [];
 function update() {
   console.log('updating schedule...');
   ical.fromURL(
-    url, {},
+    url, { headers: { 'User-Agent': 'request' } },
     function(err, data) {
       if (err) { console.error('nope'); return err; }
       var newEvents = [];
